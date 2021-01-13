@@ -1,8 +1,8 @@
 Zhparser
 ========
 
-Zhparser is a PostgreSQL extension for full-text search of Chinese. It implements a Chinese parser base on 
-the Simple Chinese Word Segmentation(SCWS).
+Zhparser is a PostgreSQL extension for full-text search of Chinese language (Mandarin Chinese). It implements a Chinese language parser base on 
+the [Simple Chinese Word Segmentation(SCWS)](https://github.com/hightman/scws).
 
 Project home page: http://blog.amutu.com/zhparser/
 
@@ -11,7 +11,7 @@ INSTALL
 0.前置条件
 
 zhparser支持PostgreSQL 9.2及以上版本，请确保你的PG版本符合要求。 
-对于REDHAT/CentOS Linux系统，请确保安装了相关的库和头文件，一般他们在postgresql-devel软件包中。 
+对于REDHAT/CentOS Linux系统，请确保安装了相关的库和头文件，一般它们在postgresql-devel软件包中。 
 
 1.安装SCWS
 
@@ -129,6 +129,44 @@ SELECT to_tsquery('testzhcfg', '保障房资金压力');
 5) 删除词做法，请将词性设为“!“，则表示该词设为无效，即使在其它核心库中存在该词也视为无效 
 
 注意：1.自定义词典的格式可以是文本TXT，也可以是二进制的XDB格式。XDB格式效率更高，适合大辞典使用。可以使用scws自带的工具scws-gen-dict将文本词典转换为XDB格式；2.zhparser默认的词典是简体中文，如果需要繁体中文，可以在[这里](http://www.xunsearch.com/scws/download.php)下载已经生成好的XDB格式此词典。3.自定义词典的例子可以参考[dict_extra.txt](https://github.com/amutu/zhparser/blob/master/dict_extra.txt)。更多信息参见[SCWS官方文档](http://www.xunsearch.com/scws/docs.php#utilscws)。
+
+自定义词库 2.1
+-------
+** 自定义词库2.1 增加自定义词库的易容性, 并兼容1.0提供的功能 **
+
+
+自定义词库需要superuser权限, 自定义库是数据库级别的(不是实例),每个数据库拥有自己的自定义分词, 并存储在data目录下base/数据库ID下(2.0 版本存储在share/tsearch_data下)
+
+生成环境版本升级(新环境直接安装就可以)：
+	alter extension zhparser update ;
+```
+test=# SELECT * FROM ts_parse('zhparser', '保障房资金压力');
+ tokid | token
+-------+-------
+   118 | 保障
+   110 | 房
+   110 | 资金
+   110 | 压力
+
+test=# insert into zhparser.zhprs_custom_word values('资金压力');
+--删除词insert into zhprs_custom_word(word, attr) values('word', '!');
+--\d zhprs_custom_word 查看其表结构，支持TD, IDF
+test=# select sync_zhprs_custom_word();
+ sync_zhprs_custom_word
+------------------------
+
+(1 row)
+
+test=# \q --sync 后重新建立连接
+[lzzhang@lzzhang-pc bin]$ ./psql -U lzzhang -d test -p 1600
+test=# SELECT * FROM ts_parse('zhparser', '保障房资金压力');
+ tokid |  token
+-------+----------
+   118 | 保障
+   110 | 房
+   120 | 资金压力
+```
+
 
 COPYRITE
 --------

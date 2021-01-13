@@ -12,6 +12,8 @@
 #include "fmgr.h"
 #include "utils/guc.h"
 #include "utils/builtins.h"
+#include "utils/varlena.h"
+#include "commands/dbcommands.h"
 
 /* dict file extension */
 #define TXT_EXT ".txt"
@@ -206,6 +208,15 @@ static void init(){
 			 )));
 	}
 
+	snprintf(dict_path, MAXPGPATH, "%s/base/%u/zhprs_dict_%s.txt",
+			DataDir, MyDatabaseId, get_database_name(MyDatabaseId));
+	if(scws_add_dict(scws, dict_path, load_dict_mem_mode | SCWS_XDICT_TXT) != 0 ){
+		ereport(NOTICE,
+			    (errcode(ERRCODE_INTERNAL_ERROR),
+			     errmsg("zhparser add dict : \"%s\" failed!",dict_path
+				 )));
+	}
+
 	if(extra_dicts != NULL){
 	    if(!SplitIdentifierString(extra_dicts,',',&elemlist)){
 		scws_free(scws);
@@ -262,6 +273,7 @@ static void init(){
 /*
  * functions
  */
+
 Datum
 zhprs_start(PG_FUNCTION_ARGS)
 {
